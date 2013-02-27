@@ -34,14 +34,35 @@ smallest(A,B,B):-
   A >= B.
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+bloodiest_move([[4,4,3,4],[4,4,3,5],[4,4,4,3],[4,4,4,5],[4,4,5,3],[4,4,5,4],[4,4,5,5],[7,8,6,7],[7,8,6,8],[7,7,6,6],[7,7,6,7],[7,7,6,8],[7,7,7,6],[7,7,8,6],[8,7,7,6],[8,7,8,6]], [[[2,2],[2,3],[2,4],[3,3]],[[4,4],[8,8],[7,8],[7,7],[8,7]]],Move, 65).
+
+
+
 bloodiest_move([],_,Move,Least).
+bloodiest_move([[A,B,MA,MB]|PossMoves],[AliveBlues,AliveReds],[A,B,MA,MB],Least) :-
+   alter_board([A,B,MA,MB],AliveReds,NextReds),
+   next_generation([AliveBlues,NextReds],[NextBlues,_]),
+    length(NextBlues,L),
+    Least > L,
+    bloodiest_move(PossMoves,[AliveBlues,AliveReds],[A,B,MA,MB],L).
 bloodiest_move([[A,B,MA,MB]|PossMoves],[AliveBlues,AliveReds],Move,Least) :-
    alter_board([A,B,MA,MB],AliveReds,NextReds),
    next_generation([AliveBlues,NextReds],[NextBlues,_]),
     length(NextBlues,L),
-    ( Least > L
-    -> bloodiest_move(PossMoves,[AliveBlues,AliveReds],[A,B,MA,MB],L);
-       bloodiest_move(PossMoves,[AliveBlues,AliveReds],Move,Least)).
+    Least < L,
+    bloodiest_move(PossMoves,[AliveBlues,AliveReds],Move,Least).
 
 %%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%
