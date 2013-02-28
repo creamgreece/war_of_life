@@ -85,22 +85,63 @@ self_preservation_move('r', PossMoves, [AliveBlues, AliveReds], [NewBlues, NewRe
     member(Move, PossMoves),
     alter_board(Move, AliveReds, NextReds),
     next_generation([AliveBlues, NextReds], [NewBlues, NewReds]),
-    length(NewReds, Least),
+    length(NewReds, Most),
     \+ (member(Others, PossMoves), 
         alter_board(Others, AliveReds, NextReds1),
         next_generation([AliveBlues, NextReds1], [_, NewReds1]),
-        length(NewReds1, L),
-        L > Least). 
+        length(NewReds1, M),
+        M > Most). 
 self_preservation_move('b', PossMoves, [AliveBlues, AliveReds], [NewBlues, NewReds], Move) :-
     member(Move, PossMoves),
     alter_board(Move, AliveBlues, NextBlues),
     next_generation([NextBlues, AliveReds], [NewBlues, NewReds]),
-    length(NewBlues, Least),
+    length(NewBlues, Most),
     \+ (member(Others, PossMoves), 
         alter_board(Others, AliveBlues, NextBlues1),
         next_generation([NextBlues1, AliveReds], [NewBlues1, _]),
-        length(NewBlues1, L),
-        L > Least).  
+        length(NewBlues1, M),
+        M > Most).  
+
+%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% LAND_GRAB STRATEGY
+land_grab(Player, [AliveBlues,AliveReds],  NewBoard, Move):-
+    findall([A, B, MA, MB],
+           (member([A, B], AliveReds),
+            neighbour_position(A,B,[MA,MB]),
+            \+ member([MA, MB], AliveReds),
+	          \+ member([MA, MB], AliveBlues)), 
+            PossMoves),
+    land_grab_move(Player,PossMoves,[AliveBlues,AliveReds],NewBoard,Move).
+
+land_grab_move('r', PossMoves, [AliveBlues, AliveReds], [NewBlues, NewReds], Move) :-
+    member(Move, PossMoves),
+    alter_board(Move, AliveReds, NextReds),
+    next_generation([AliveBlues, NextReds], [NewBlues, NewReds]),
+    length(NewReds, R),
+    length(NewBlues, B),
+    Diff is R - B,
+    \+ (member(Others, PossMoves), 
+        alter_board(Others, AliveReds, NextReds1),
+        next_generation([AliveBlues, NextReds1], [NewBlues1, NewReds1]),
+        length(NewReds1, R1),
+        length(NewBlues1, B1),
+        Diff1 is R1 - B1, 
+        Diff1 > Diff). 
+land_grab_move('b', PossMoves, [AliveBlues, AliveReds], [NewBlues, NewReds], Move) :-
+    member(Move, PossMoves),
+    alter_board(Move, AliveBlues, NextBlues),
+    next_generation([NextBlues, AliveReds], [NewBlues, NewReds]),
+    length(NewBlues, B),
+    length(NewReds, R),
+    Diff is B - R,
+    \+ (member(Others, PossMoves), 
+        alter_board(Others, AliveBlues, NextBlues1),
+        next_generation([NextBlues1, AliveReds], [NewBlues1, NewReds1]),
+        length(NewBlues1, B1),
+        length(NewReds1, R1),
+        Diff1 is B1 - R1,
+        Diff1 > Diff).  
                       
 /*    
    
