@@ -35,27 +35,6 @@ smallest(A,B,A):-
 smallest(A,B,B):-
   A >= B.
 
-bloodiest_move('r', PossMoves, [AliveBlues, AliveReds], [NewBlues, NewReds], Move) :-
-    member(Move, PossMoves),
-    alter_board(Move, AliveReds, NextReds),
-    next_generation([AliveBlues, NextReds], [NewBlues, NewReds]),
-    length(NewBlues, Least),
-    \+ (member(Others, PossMoves), 
-        alter_board(Others, AliveReds, NextReds1),
-        next_generation([AliveBlues, NextReds1], [NewBlues1, _]),
-        length(NewBlues1, L),
-        L < Least). 
-bloodiest_move('b', PossMoves, [AliveBlues, AliveReds], [NewBlues, NewReds], Move) :-
-    member(Move, PossMoves),
-    alter_board(Move, AliveBlues, NextBlues),
-    next_generation([NextBlues, AliveReds], [NewBlues, NewReds]),
-    length(NewReds, Least),
-    \+ (member(Others, PossMoves), 
-        alter_board(Others, AliveBlues, NextBlues1),
-        next_generation([NextBlues1, AliveReds], [_, NewReds1]),
-        length(NewReds1, L),
-        L < Least).     
-
 
 %%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%
@@ -67,9 +46,61 @@ bloodlust(Player, [AliveBlues,AliveReds],  NewBoard, Move):-
             \+ member([MA, MB], AliveReds),
 	          \+ member([MA, MB], AliveBlues)), 
             PossMoves),
-    bloodiest_move(Player,PossMoves,[AliveBlues,AliveReds],NewBoard,Move).
+    bloodlust_move(Player,PossMoves,[AliveBlues,AliveReds],NewBoard,Move).
 
+bloodlust_move('r', PossMoves, [AliveBlues, AliveReds], [NewBlues, NewReds], Move) :-
+    member(Move, PossMoves),
+    alter_board(Move, AliveReds, NextReds),
+    next_generation([AliveBlues, NextReds], [NewBlues, NewReds]),
+    length(NewBlues, Least),
+    \+ (member(Others, PossMoves), 
+        alter_board(Others, AliveReds, NextReds1),
+        next_generation([AliveBlues, NextReds1], [NewBlues1, _]),
+        length(NewBlues1, L),
+        L < Least). 
+bloodlust_move('b', PossMoves, [AliveBlues, AliveReds], [NewBlues, NewReds], Move) :-
+    member(Move, PossMoves),
+    alter_board(Move, AliveBlues, NextBlues),
+    next_generation([NextBlues, AliveReds], [NewBlues, NewReds]),
+    length(NewReds, Least),
+    \+ (member(Others, PossMoves), 
+        alter_board(Others, AliveBlues, NextBlues1),
+        next_generation([NextBlues1, AliveReds], [_, NewReds1]),
+        length(NewReds1, L),
+        L < Least).  
 
+%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%% SELF_PRESERVATION STRATEGY
+self_preservation(Player, [AliveBlues,AliveReds],  NewBoard, Move):-
+    findall([A, B, MA, MB],
+           (member([A, B], AliveReds),
+            neighbour_position(A,B,[MA,MB]),
+            \+ member([MA, MB], AliveReds),
+	          \+ member([MA, MB], AliveBlues)), 
+            PossMoves),
+    self_preservation_move(Player,PossMoves,[AliveBlues,AliveReds],NewBoard,Move).
+
+self_preservation_move('r', PossMoves, [AliveBlues, AliveReds], [NewBlues, NewReds], Move) :-
+    member(Move, PossMoves),
+    alter_board(Move, AliveReds, NextReds),
+    next_generation([AliveBlues, NextReds], [NewBlues, NewReds]),
+    length(NewReds, Least),
+    \+ (member(Others, PossMoves), 
+        alter_board(Others, AliveReds, NextReds1),
+        next_generation([AliveBlues, NextReds1], [_, NewReds1]),
+        length(NewReds1, L),
+        L > Least). 
+self_preservation_move('b', PossMoves, [AliveBlues, AliveReds], [NewBlues, NewReds], Move) :-
+    member(Move, PossMoves),
+    alter_board(Move, AliveBlues, NextBlues),
+    next_generation([NextBlues, AliveReds], [NewBlues, NewReds]),
+    length(NewBlues, Least),
+    \+ (member(Others, PossMoves), 
+        alter_board(Others, AliveBlues, NextBlues1),
+        next_generation([NextBlues1, AliveReds], [NewBlues1, _]),
+        length(NewBlues1, L),
+        L > Least).  
                       
 /*    
    
