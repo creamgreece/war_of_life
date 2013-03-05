@@ -101,20 +101,20 @@ bloodlust('b', [AliveBlues,AliveReds],  NewBoard, Move):-
             PossMoves),
     bloodlust_move('b',PossMoves,[AliveBlues,AliveReds],NewBoard,Move).
 
-bloodlust_move('r', PossMoves, [AliveBlues, AliveReds], [NewBlues, NewReds], Move) :-
+bloodlust_move('r', PossMoves, [AliveBlues, AliveReds], [AliveBlues, NextReds], Move) :-
     member(Move, PossMoves),
     alter_board(Move, AliveReds, NextReds),
-    next_generation([AliveBlues, NextReds], [NewBlues, NewReds]),
+    next_generation([AliveBlues, NextReds], [NewBlues, _]),
     length(NewBlues, Least),
     \+ (member(Others, PossMoves), 
         alter_board(Others, AliveReds, NextReds1),
         next_generation([AliveBlues, NextReds1], [NewBlues1, _]),
         length(NewBlues1, L),
         L < Least). 
-bloodlust_move('b', PossMoves, [AliveBlues, AliveReds], [NewBlues, NewReds], Move) :-
+bloodlust_move('b', PossMoves, [AliveBlues, AliveReds], [NextBlues, AliveReds], Move) :-
     member(Move, PossMoves),
     alter_board(Move, AliveBlues, NextBlues),
-    next_generation([NextBlues, AliveReds], [NewBlues, NewReds]),
+    next_generation([NextBlues, AliveReds], [_, NewReds]),
     length(NewReds, Least),
     \+ (member(Others, PossMoves), 
         alter_board(Others, AliveBlues, NextBlues1),
@@ -142,20 +142,20 @@ self_preservation('b', [AliveBlues,AliveReds],  NewBoard, Move):-
             PossMoves),
     self_preservation_move('b',PossMoves,[AliveBlues,AliveReds],NewBoard,Move).
 
-self_preservation_move('r', PossMoves, [AliveBlues, AliveReds], [NewBlues, NewReds], Move) :-
+self_preservation_move('r', PossMoves, [AliveBlues, AliveReds], [AliveBlues, NextReds], Move) :-
     member(Move, PossMoves),
     alter_board(Move, AliveReds, NextReds),
-    next_generation([AliveBlues, NextReds], [NewBlues, NewReds]),
+    next_generation([AliveBlues, NextReds], [_, NewReds]),
     length(NewReds, Most),
     \+ (member(Others, PossMoves), 
         alter_board(Others, AliveReds, NextReds1),
         next_generation([AliveBlues, NextReds1], [_, NewReds1]),
         length(NewReds1, M),
         M > Most). 
-self_preservation_move('b', PossMoves, [AliveBlues, AliveReds], [NewBlues, NewReds], Move) :-
+self_preservation_move('b', PossMoves, [AliveBlues, AliveReds], [NextBlues, AliveReds], Move) :-
     member(Move, PossMoves),
     alter_board(Move, AliveBlues, NextBlues),
-    next_generation([NextBlues, AliveReds], [NewBlues, NewReds]),
+    next_generation([NextBlues, AliveReds], [NewBlues, _]),
     length(NewBlues, Most),
     \+ (member(Others, PossMoves), 
         alter_board(Others, AliveBlues, NextBlues1),
@@ -182,7 +182,7 @@ land_grab('b', [AliveBlues,AliveReds],  NewBoard, Move):-
 	          \+ member([MA, MB], AliveBlues)), 
             PossMoves),
     land_grab_move('b',PossMoves,[AliveBlues,AliveReds],NewBoard,Move).
-land_grab_move('r', PossMoves, [AliveBlues, AliveReds], [NewBlues, NewReds], Move) :-
+land_grab_move('r', PossMoves, [AliveBlues, AliveReds], [AliveBlues, NextReds], Move) :-
     member(Move, PossMoves),
     alter_board(Move, AliveReds, NextReds),
     next_generation([AliveBlues, NextReds], [NewBlues, NewReds]),
@@ -196,7 +196,7 @@ land_grab_move('r', PossMoves, [AliveBlues, AliveReds], [NewBlues, NewReds], Mov
         length(NewBlues1, B1),
         Diff1 is R1 - B1, 
         Diff1 > Diff). 
-land_grab_move('b', PossMoves, [AliveBlues, AliveReds], [NewBlues, NewReds], Move) :-
+land_grab_move('b', PossMoves, [AliveBlues, AliveReds], [NextBlues, AliveReds], Move) :-
     member(Move, PossMoves),
     alter_board(Move, AliveBlues, NextBlues),
     next_generation([NextBlues, AliveReds], [NewBlues, NewReds]),
@@ -314,7 +314,7 @@ minimax_move('r', PossMoves, [AliveBlues, AliveReds], NewBoard, Move):-
   TotalWeightOther is WeightRootOther + WeightLowerOther, 
   TotalWeightOther > TotalWeight).
 
-double_look('b',Move,[AliveBlues,AliveReds],Weight,WeightLower,[NewBlues,NewReds]):-
+double_look('b',Move,[AliveBlues,AliveReds],Weight,WeightLower,[ChangedBlues,AliveReds]):-
   alter_board(Move, AliveBlues, ChangedBlues),
   next_generation([ChangedBlues, AliveReds],[NewBlues, NewReds]),
   length(NewBlues, WeightBlue),
@@ -342,7 +342,7 @@ double_look('b',Move,[AliveBlues,AliveReds],Weight,WeightLower,[NewBlues,NewReds
     Weight2 < WeightLower).
   
      
-double_look('r',Move,[AliveBlues,AliveReds],Weight,WeightLower,[NewBlues,NewReds]):-
+double_look('r',Move,[AliveBlues,AliveReds],Weight,WeightLower,[AliveBlues,ChangedReds]):-
   alter_board(Move, AliveReds, ChangedReds),
   next_generation([AliveBlues, ChangedReds],[NewBlues, NewReds]),
   length(NewBlues, WeightBlue),
@@ -369,37 +369,3 @@ double_look('r',Move,[AliveBlues,AliveReds],Weight,WeightLower,[NewBlues,NewReds
     Weight2 is NewWeightRed1 - NewWeightBlue1,
     Weight2 < WeightLower).
 
-  
-
-  
-  
-/*
-
-testConfig([[2,2],[2,3],[2,4],[3,3]],[[4,4],[8,8],[7,8],[7,7],[8,7]]).
-
-test(Board):-
-testConfig(Board),
-drawBoard(Board),
-
-
-findall([A,B,MA,MB],(member([A,B], [[4,4],[8,8],[7,8],[7,7],[8,7]]),neighbour_position(A,B,[MA,MB]),\+member([MA,MB],[[4,4],[8,8],[7,8],[7,7],[8,7]]),\+member([MA,MB],[[2,2],[2,3],[2,4],[3,3]])),PossMoves),bloodiest_move(PossMoves,[[[2,2],[2,3],[2,4],[3,3]],[[4,4],[8,8],[7,8],[7,7],[8,7]]],Move,65). 
-
-
-
-findall((L,[MA,MB]),(alter_board([A,B,MA,MB],[[4,4],[8,8],[7,8],[7,7],[8,7]],NewReds), next_generation([[[2,2],[2,3],[2,4],[3,3]],NewReds],[NextBlues,_]), length(NewBlues,L), member([A,B,MA,MB],PossMoves)), Ans). 
-
-
-
-[[4,4,3,4],[4,4,3,5],[4,4,4,3],[4,4,4,5],[4,4,5,3],[4,4,5,4],[4,4,5,5],[7,8,6,7],[7,8,6,8],[7,7,6,6],[7,7,6,7],[7,7,6,8],[7,7,7,6],[7,7,8,6],[8,7,7,6],[8,7,8,6]]
-
-
-next_generation([[[2,2],[2,3],[2,4],[3,3]],NewReds],NewBoard).
-
-
-alter_board([4,4,4,3],[[1,8],[4,4],[8,8]],NewReds), next_generation([[[2,2],[2,3],[2,4],[3,3]],NewReds],NewBoard),write(NewBoard).
-
-
-
-self_preservation(PieceColour, Board, NewBoard, Move):-
-land_grab(PieceColour, Board, NewBoard, Move):-
-minimax(PieceColour, Board, NewBoard, Move):-*/
