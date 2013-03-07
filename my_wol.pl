@@ -189,6 +189,53 @@ bloodlust_move('b', PossMoves, [AliveBlues, AliveReds], [NextBlues, AliveReds], 
 %%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%% SELF_PRESERVATION STRATEGY
 self_preservation('r', [AliveBlues,AliveReds],  NewBoard, Move):-
+    get_pos_moves('r', [AliveBlues,AliveReds], PossMoves),
+    self_preservation_move1('r',PossMoves,[AliveBlues,AliveReds],NewBoard,Move,_).
+self_preservation('b', [AliveBlues,AliveReds],  NewBoard, Move):-
+    get_pos_moves('b', [AliveBlues,AliveReds], PossMoves),
+    self_preservation_move('b',PossMoves,[AliveBlues,AliveReds],NewBoard,Move,_).
+
+
+self_preservation_move('r',[Move],[AliveBlues, AliveReds],[AliveBlues, NextReds], Move, NumReds):-
+    alter_board(Move, AliveReds, NextReds),
+    next_generation([AliveBlues, NextReds], [_, NewReds]),
+    length(NewReds, NumReds).
+self_preservation_move('b',[Move],[AliveBlues, AliveReds],[NextBlues, AliveReds], Move, NumBlues):-
+    alter_board(Move, AliveBlues, NextBlues),
+    next_generation([NextBlues, AliveReds], [NewBlues, _]),
+    length(NewBlues, NumBlues).
+
+
+self_preservation_move('r', [Move|PossMoves], [AliveBlues, AliveReds], [Blues, Reds], BestMove, BestScore) :-
+    alter_board(Move, AliveReds, NextReds),
+    next_generation([AliveBlues, NextReds], [_, NewReds]),
+    length(NewReds, NumReds),
+    self_preservation_move('r', PossMoves, [AliveBlues, AliveReds], [AliveBlues_, NextReds_], BestMove_, BestScore_),
+    (NumReds > BestScore_ -> 
+     Blues = AliveBlues,
+     Reds  = NextReds,
+     BestMove = Move,
+     BestScore = NumReds;
+     Blues  = AliveBlues_,
+     Reds = NextReds_,
+     BestMove = BestMove_,
+     BestScore = BestScore_). 
+self_preservation_move('b', [Move|PossMoves], [AliveBlues, AliveReds], [Blues, Reds], BestMove, BestScore) :-
+    alter_board(Move, AliveBlues, NextBlues),
+    next_generation([NextBlues, AliveReds], [NewBlues, _]),
+    length(NewBlues, NumBlues),
+    self_preservation_move('b', PossMoves, [AliveBlues, AliveReds], [NextBlues_, AliveReds_], BestMove_, BestScore_),
+    (NumBlues > BestScore_ -> 
+     Blues = NextBlues,
+     Reds  = AliveReds,
+     BestMove = Move,
+     BestScore = NumBlues;
+     Blues  = NextBlues_,
+     Reds = AliveReds_,
+     BestMove = BestMove_,
+     BestScore = BestScore_). 
+/*
+self_preservation('r', [AliveBlues,AliveReds],  NewBoard, Move):-
     findall([A, B, MA, MB],
            (member([A, B], AliveReds),
             neighbour_position(A,B,[MA,MB]),
@@ -225,10 +272,63 @@ self_preservation_move('b', PossMoves, [AliveBlues, AliveReds], [NextBlues, Aliv
         next_generation([NextBlues1, AliveReds], [NewBlues1, _]),
         length(NewBlues1, M),
         M > Most).  
-
+*/
 %%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%% LAND_GRAB STRATEGY
+land_grab('r', [AliveBlues,AliveReds],  NewBoard, Move):-
+    get_pos_moves('r', [AliveBlues,AliveReds], PossMoves),
+    land_grab_move1('r',PossMoves,[AliveBlues,AliveReds],NewBoard,Move,_).
+land_grab('b', [AliveBlues,AliveReds],  NewBoard, Move):-
+    get_pos_moves('b', [AliveBlues,AliveReds], PossMoves),
+    land_grab_move('b',PossMoves,[AliveBlues,AliveReds],NewBoard,Move,_).
+
+
+land_grab_move('r',[Move],[AliveBlues, AliveReds],[AliveBlues, NextReds], Move, Diff):-
+    alter_board(Move, AliveReds, NextReds),
+    next_generation([AliveBlues, NextReds], [NewBlues, NewReds]),
+    length(NewReds, NumReds),
+    length(NewBlues, NumBlues),
+    Diff is NumReds - NumBlues.
+land_grab_move('b',[Move],[AliveBlues, AliveReds],[NextBlues, AliveReds], Move, Diff):-
+    alter_board(Move, AliveBlues, NextBlues),
+    next_generation([NextBlues, AliveReds], [NewBlues, NewReds]),
+    length(NewBlues, NumBlues),
+    length(NewReds, NumReds),
+    Diff is NumBlues - NumReds.
+land_grab_move('r', [Move|PossMoves], [AliveBlues, AliveReds], [Blues, Reds], BestMove, BestScore) :-
+    alter_board(Move, AliveReds, NextReds),
+    next_generation([AliveBlues, NextReds], [NewBlues, NewReds]),
+    length(NewReds, NumReds),
+    length(NewBlues, NumBlues),
+    Diff is NumReds - NumBlues,
+    land_grab_move('r', PossMoves, [AliveBlues, AliveReds], [AliveBlues_, NextReds_], BestMove_, BestScore_),
+    (Diff > BestScore_ -> 
+     Blues = AliveBlues,
+     Reds  = NextReds,
+     BestMove = Move,
+     BestScore = Diff;
+     Blues  = AliveBlues_,
+     Reds = NextReds_,
+     BestMove = BestMove_,
+     BestScore = BestScore_). 
+land_grab_move('b', [Move|PossMoves], [AliveBlues, AliveReds], [Blues, Reds], BestMove, BestScore) :-
+    alter_board(Move, AliveBlues, NextBlues),
+    next_generation([NextBlues, AliveReds], [NewBlues, NewReds]),
+    length(NewBlues, NumBlues),
+    length(NewReds, NumReds),
+    Diff is NumBlues - NumReds,
+    land_grab_move('b', PossMoves, [AliveBlues, AliveReds], [NextBlues_, AliveReds_], BestMove_, BestScore_),
+    (Diff > BestScore_ -> 
+     Blues = NextBlues,
+     Reds  = AliveReds,
+     BestMove = Move,
+     BestScore = Diff;
+     Blues  = NextBlues_,
+     Reds = AliveReds_,
+     BestMove = BestMove_,
+     BestScore = BestScore_). 
+/*
 land_grab('r', [AliveBlues,AliveReds],  NewBoard, Move):-
     findall([A, B, MA, MB],
            (member([A, B], AliveReds),
@@ -273,10 +373,10 @@ land_grab_move('b', PossMoves, [AliveBlues, AliveReds], [NextBlues, AliveReds], 
         length(NewReds1, R1),
         Diff1 is B1 - R1,
         Diff1 > Diff).  
-
+*/
 %%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%% LAND_GRAB STRATEGY
+%%%%%%%%%%%%%%%%%%%% MINIMAX STRATEGY
 /*
 minimax(Player, [AliveBlues,AliveReds],  NewBoard, Move):-
     get_pos_moves(Player, [AliveBlues, AliveReds], PossMoves),
@@ -337,26 +437,6 @@ min('b', PossMoves, [AliveBlues, AliveReds], Move, Diff):-
         Diff1 < Diff). 
 
 land_grab('r', [AliveBlues,AliveReds],  NewBoard, Move):-
-*/
-
-minimax('r', [AliveBlues, AliveReds], NewBoard, Move):-
-  findall([A, B, MA, MB],
-           (member([A, B], AliveReds),
-            neighbour_position(A,B,[MA,MB]),
-            \+ member([MA, MB], AliveReds),
-	          \+ member([MA, MB], AliveBlues)), 
-            PossMoves),
-    minimax_move('r',PossMoves,[AliveBlues,AliveReds],NewBoard,Move).  
-minimax('b', [AliveBlues, AliveReds], NewBoard, Move):-
-  findall([A, B, MA, MB],
-           (member([A, B], AliveReds),
-            neighbour_position(A,B,[MA,MB]),
-            \+ member([MA, MB], AliveReds),
-	          \+ member([MA, MB], AliveBlues)), 
-            PossMoves),
-    minimax_move('r',PossMoves,[AliveBlues,AliveReds],NewBoard,Move).
-
-
 
 minimax_move('b', PossMoves, [AliveBlues, AliveReds], NewBoard, Move):-
   member(Move,PossMoves),  
@@ -374,6 +454,163 @@ minimax_move('r', PossMoves, [AliveBlues, AliveReds], NewBoard, Move):-
   TotalWeight is WeightRoot + WeightLower,
   \+ ( member(MoveOther,PossMoves),  
   double_look('r', MoveOther, [AliveBlues, AliveReds], WeightRootOther, WeightLowerOther,NewBoard),
+  TotalWeightOther is WeightRootOther + WeightLowerOther, 
+  TotalWeightOther > TotalWeight).
+
+double_look('b',Move,[AliveBlues,AliveReds],Weight,WeightLower,[ChangedBlues,AliveReds]):-
+  alter_board(Move, AliveBlues, ChangedBlues),
+  next_generation([ChangedBlues, AliveReds],[NewBlues, NewReds]),
+  length(NewBlues, WeightBlue),
+  length(NewReds, WeightRed),
+  Weight is WeightBlue - WeightRed,
+  
+  findall([A, B, MA, MB],
+           (member([A, B], NewReds),
+            neighbour_position(A,B,[MA,MB]),
+            \+ member([MA, MB], NewReds),
+	          \+ member([MA, MB], NewBlues)), 
+            OppPossMoves),
+  member(OppMove, OppPossMoves),
+  alter_board(OppMove, NewReds, ChangedReds),
+  next_generation([NewBlues, ChangedReds],[NewNewBlues, NewNewReds]),
+  length(NewNewBlues, NewWeightBlue),
+  length(NewNewReds, NewWeightRed),
+  WeightLower is NewWeightBlue - NewWeightRed,
+  \+ (member(OtherOppMove, OppPossMoves),
+    alter_board(OtherOppMove, NewReds, ChangedRedsOther),
+    next_generation([NewBlues, ChangedRedsOther],[NewNewBluesOther, NewNewRedsOther]),
+    length(NewNewBluesOther, NewWeightBlue1),
+    length(NewNewRedsOther, NewWeightRed1),
+    Weight2 is NewWeightBlue1 - NewWeightRed1,
+    Weight2 < WeightLower).
+
+     
+double_look('r',Move,[AliveBlues,AliveReds],Weight,WeightLower,[AliveBlues,ChangedReds]):-
+  alter_board(Move, AliveReds, ChangedReds),
+  next_generation([AliveBlues, ChangedReds],[NewBlues, NewReds]),
+  length(NewBlues, WeightBlue),
+  length(NewReds, WeightRed),
+  Weight is WeightRed - WeightBlue,
+  
+  findall([A, B, MA, MB],
+           (member([A, B], NewBlues),
+            neighbour_position(A,B,[MA,MB]),
+            \+ member([MA, MB], NewReds),
+	          \+ member([MA, MB], NewBlues)), 
+            OppPossMoves),
+  member(OppMove, OppPossMoves),
+  alter_board(OppMove, NewBlues, ChangedBlues),
+  next_generation([ChangedBlues, NewReds],[NewNewBlues, NewNewReds]),
+  length(NewNewBlues, NewWeightBlue),
+  length(NewNewReds, NewWeightRed),
+  WeightLower is NewWeightRed - NewWeightBlue,
+  \+ (member(OtherOppMove, OppPossMoves),
+    alter_board(OtherOppMove, NewBlues, ChangedBluesOther),
+    next_generation([ChangedBluesOther, NewReds],[NewNewBluesOther, NewNewRedsOther]),
+    length(NewNewBluesOther, NewWeightBlue1),
+    length(NewNewRedsOther, NewWeightRed1),
+    Weight2 is NewWeightRed1 - NewWeightBlue1,
+    Weight2 < WeightLower).
+*/
+
+minimax(Player, [AliveBlues, AliveReds], NewBoard, Move):-
+    get_pos_moves(Player, [AliveBlues,AliveReds], PossMoves),
+    minimax_move(Player,PossMoves,[AliveBlues,AliveReds],NewBoard,Move,_).  
+
+minimax_move(Player, [Move|PossMoves], [AliveBlues, AliveReds], NewBoard,BestScore):-
+  double_look(Player, Move, [AliveBlues, AliveReds], WeightRoot, WeightLower,Board),
+  TotalWeight is WeightRoot + WeightLower,
+  minimax_move(Player, PossMoves, [AliveBlues, AliveReds], Board_,Score_),
+  (TotalWeight > Score_ ->
+   NewBoard = Board,
+   BestScore = TotalWeight;
+   NewBoard = Board_,
+   BestScore = Score_).  
+
+double_look('b',Move,[AliveBlues,AliveReds],Weight,WeightLower,[ChangedBlues,AliveReds]):-
+  alter_board(Move, AliveBlues, ChangedBlues),
+  next_generation([ChangedBlues, AliveReds],[NewBlues, NewReds]),
+  length(NewBlues, WeightBlue),
+  length(NewReds, WeightRed),
+  Weight is WeightBlue - WeightRed,
+  get_pos_moves('r', [NewBlues,NewReds], OppPossMoves),
+  min('r',OppPossMoves,[NewBlues,NewReds],_,WeightLower).
+
+double_look('r',Move,[AliveBlues,AliveReds],Weight,WeightLower,[AliveBlues,ChangedReds]):-
+  alter_board(Move, AliveReds, ChangedReds),
+  next_generation([AliveBlues, ChangedReds],[NewBlues, NewReds]),
+  length(NewBlues, WeightBlue),
+  length(NewReds, WeightRed),
+  Weight is WeightRed - WeightBlue,
+  get_pos_moves('b', [NewBlues,NewReds], OppPossMoves),
+  min('b',OppPossMoves,[NewBlues,NewReds],_,WeightLower).
+
+min('r',[Move|PossMoves],[AliveBlues,AliveReds],[Blues, Reds],BestScore):-
+  alter_board(Move, AliveReds, ChangedReds),
+  next_generation([AliveBlues, ChangedReds],[NewBlues, NewReds]),
+  length(NewBlues, NumBlues),
+  length(NewReds, NumReds),
+  Diff is NumReds - NumBlues,
+  min('r',PossMoves,[AliveBlues,AliveReds],[NewBlues_, NewReds_],BestScore_),
+  (Diff < BestScore_ ->
+   BestScore = Diff,
+    Blues = AliveBlues,
+    Reds = ChangedReds;
+    BestScore = BestScore_,
+    Blues = NewBlues_,
+    Reds = NewReds_).
+min('b',[Move|PossMoves],[AliveBlues,AliveReds],[Blues, Reds],BestScore):-
+  alter_board(Move, AliveBlues, ChangedBlues),
+  next_generation([ChangedBlues, AliveReds],[NewBlues, NewReds]),
+  length(NewBlues, NumBlues),
+  length(NewReds, NumReds),
+  Diff is NumBlues - NumReds,
+  min('b',PossMoves,[AliveBlues,AliveReds],[NewBlues_, NewReds_],BestScore_),
+  (Diff < BestScore_ ->
+   BestScore = Diff,
+    Blues = ChangedBlues,
+    Reds = AliveReds;
+    BestScore = BestScore_,
+    Blues = NewBlues_,
+    Reds = NewReds_).
+
+/*
+minimax('r', [AliveBlues, AliveReds], NewBoard, Move):-
+  findall([A, B, MA, MB],
+           (member([A, B], AliveReds),
+            neighbour_position(A,B,[MA,MB]),
+            \+ member([MA, MB], AliveReds),
+	          \+ member([MA, MB], AliveBlues)), 
+            PossMoves),
+    minimax_move('r',PossMoves,[AliveBlues,AliveReds],NewBoard,Move).  
+
+minimax('b', [AliveBlues, AliveReds], NewBoard, Move):-
+  findall([A, B, MA, MB],
+           (member([A, B], AliveBlues),
+            neighbour_position(A,B,[MA,MB]),
+            \+ member([MA, MB], AliveReds),
+	          \+ member([MA, MB], AliveBlues)), 
+            PossMoves),
+    minimax_move('b',PossMoves,[AliveBlues,AliveReds],NewBoard,Move).
+
+
+
+minimax_move('b', PossMoves, [AliveBlues, AliveReds], NewBoard, Move):-
+  member(Move,PossMoves),  
+	/* Post: Gives me a new board from commiting Move */
+  double_look('b', Move, [AliveBlues, AliveReds], WeightRoot, WeightLower,NewBoard),
+  TotalWeight is WeightRoot + WeightLower,
+  \+ ( member(MoveOther,PossMoves),  
+  double_look('b', MoveOther, [AliveBlues, AliveReds], WeightRootOther, WeightLowerOther,_),
+  TotalWeightOther is WeightRootOther + WeightLowerOther, 
+  TotalWeightOther > TotalWeight).
+
+minimax_move('r', PossMoves, [AliveBlues, AliveReds], NewBoard, Move):-
+  member(Move,PossMoves),  
+  double_look('r', Move, [AliveBlues, AliveReds], WeightRoot, WeightLower,NewBoard),
+  TotalWeight is WeightRoot + WeightLower,
+  \+ ( member(MoveOther,PossMoves),  
+  double_look('r', MoveOther, [AliveBlues, AliveReds], WeightRootOther, WeightLowerOther,_),
   TotalWeightOther is WeightRootOther + WeightLowerOther, 
   TotalWeightOther > TotalWeight).
 
@@ -431,4 +668,4 @@ double_look('r',Move,[AliveBlues,AliveReds],Weight,WeightLower,[AliveBlues,Chang
     length(NewNewRedsOther, NewWeightRed1),
     Weight2 is NewWeightRed1 - NewWeightBlue1,
     Weight2 < WeightLower).
-
+*/
