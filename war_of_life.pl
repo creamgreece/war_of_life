@@ -12,7 +12,7 @@
 %%%%% play/5
 
 play(ShowFlag, FirstPlayerStrategy, SecondPlayerStrategy, TotalMoves, Winner) :-
- start_config(random, Board),
+ start_config(gliders, Board),
  (
   ShowFlag == verbose,
   format('~nInitial State:~n~n', []),

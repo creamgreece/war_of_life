@@ -1,29 +1,39 @@
 :- [war_of_life].
     
 test_strategy(N, Strat1, Strat2):-
-    test_strat_helper(N, Strat1, Strat2, 0, 0, 0, 0, 250, 0).
+    test_strat_helper(N, Strat1, Strat2, 0, 0, 0, 0, 250,0,0).
     
-test_strat_helper(0, _, _, B, R, D, Max, Min, Total):-
-    format('~nblue score = ~w~nredscore = ~w~ndraws = ~w~nMax = ~w~nMin = ~w~nTotal = ~w~n', [B,R,D,Max,Min,Total]).
+test_strat_helper(0, _, _, B, R, D, Max, Min, Total, Time):-
+    format('Blue score = ~w~n', [B]),
+    format('Red score = ~w~n', [R]),
+    format('Number of draws = ~w~n', [D]),
+    format('Longest game length = ~w~n', [Max]),
+    format('Shortest game length = ~w~n', [Min]),
+    TimeInSec is Time / 1000,
+    format('Average time = ~w s~n', [TimeInSec]),
+    format('Total game length = ~w~n', [Total]).
 
-test_strat_helper(N, S1, S2, B, R, D, Max, Min, Total):-
+test_strat_helper(N, S1, S2, B, R, D, Max, Min, Total, Time):-
+    statistics(runtime, [Start|_]),
     NewN is N - 1,
     play(quiet, S1, S2, Moves, Winner),
     biggest(Max, Moves, Big),
     smallest(Min, Moves, Small),
     NewTotal is Total + Moves,
+    statistics(runtime, [Finish|_]),
+    T is Finish - Start,
+    NewTime is T + Time,
     ((Winner = 'r'
       ->NewR is R + 1,
       %%format('~nwinner = ~w~nN =~w~n', [Winner, N]),
-      test_strat_helper(NewN, S1, S2, B, NewR, D, Big, Small, NewTotal); 
+      test_strat_helper(NewN, S1, S2, B, NewR, D, Big, Small, NewTotal, NewTime); 
       Winner = 'b' 
       ->NewB is B + 1,
       %%format('~nwinner = ~w~nN =~w~n', [Winner, N]),
-      test_strat_helper(NewN, S1, S2, NewB, R, D, Big, Small, NewTotal));
+      test_strat_helper(NewN, S1, S2, NewB, R, D, Big, Small, NewTotal, NewTime));
       NewD is D + 1,
       %%format('~nwinner = ~w~nN =~w~n', [Winner, N]),
-      test_strat_helper(NewN, S1, S2, B, R, NewD, Big, Small, NewTotal)).
-
+      test_strat_helper(NewN, S1, S2, B, R, NewD, Big, Small, NewTotal, NewTime)).
 
 biggest(A,B,A):-
   A > B.
@@ -35,29 +45,30 @@ smallest(A,B,A):-
 smallest(A,B,B):-
   A >= B.
 
-get_time(T):-
-    statistics(runtime,[Start|_]),
-    test_strategy(1000, random, random),
-    statistics(runtime,[Finish|_]),
-    T is Start - Finish.
 
-/*
+
 find_alive('r', [_, AliveReds], AliveReds).
 find_alive('b', [AliveBlues, _], AliveBlues).
 
 next_gen_for_player('r', [_, NewReds], NewReds).
 next_gen_for_player('b', [NewBlues, _], NewBlues).
 
-get_pos_moves(Player, [AliveBlues,AliveReds], PossMoves):-
-    findall([A, B, MA, MB],
-           (member([A, B], Alive),
-            find_alive(Player, [AliveBlues, AliveReds], Alive),
+get_pos_moves('r', [AliveBlues,AliveReds], PossMoves):-
+    setof([A, B, MA, MB],
+           (member([A, B], AliveReds),
+            neighbour_position(A,B,[MA,MB]),
+            \+ member([MA, MB], AliveReds),
+	          \+ member([MA, MB], AliveBlues)), 
+            PossMoves).
+get_pos_moves('b', [AliveBlues,AliveReds], PossMoves):-
+    setof([A, B, MA, MB],
+           (member([A, B], AliveBlues),
             neighbour_position(A,B,[MA,MB]),
             \+ member([MA, MB], AliveReds),
 	          \+ member([MA, MB], AliveBlues)), 
             PossMoves).
 
-
+/*
 getOpponent('r','b').
 getOpponent('b','r').
 
@@ -85,21 +96,73 @@ has_minimum(Player, Move, PossMoves, [AliveBlues, AliveReds], [NewBlues, NewReds
 %%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%% BLOODLUST STRATEGY
 bloodlust('r', [AliveBlues,AliveReds],  NewBoard, Move):-
-    findall([A, B, MA, MB],
-           (member([A, B], AliveReds),
-            neighbour_position(A,B,[MA,MB]),
-            \+ member([MA, MB], AliveReds),
-	          \+ member([MA, MB], AliveBlues)), 
-            PossMoves),
-    bloodlust_move('r',PossMoves,[AliveBlues,AliveReds],NewBoard,Move).
+    get_pos_moves('r', [AliveBlues,AliveReds], PossMoves),
+    bloodlust_move1('r',PossMoves,[AliveBlues,AliveReds],NewBoard,Move,_).
 bloodlust('b', [AliveBlues,AliveReds],  NewBoard, Move):-
-    findall([A, B, MA, MB],
-           (member([A, B], AliveBlues),
-            neighbour_position(A,B,[MA,MB]),
-            \+ member([MA, MB], AliveReds),
-	          \+ member([MA, MB], AliveBlues)), 
-            PossMoves),
-    bloodlust_move('b',PossMoves,[AliveBlues,AliveReds],NewBoard,Move).
+    get_pos_moves('b', [AliveBlues,AliveReds], PossMoves),
+    bloodlust_move1('b',PossMoves,[AliveBlues,AliveReds],NewBoard,Move,_).
+
+
+bloodlust_move1('r',[Move],[AliveBlues, AliveReds],[AliveBlues, NextReds], Move, NumBlues):-
+    alter_board(Move, AliveReds, NextReds),
+    next_generation([AliveBlues, NextReds], [NewBlues, _]),
+    length(NewBlues, NumBlues).
+bloodlust_move1('b',[Move],[AliveBlues, AliveReds],[NextBlues, AliveReds], Move, NumReds):-
+    alter_board(Move, AliveBlues, NextBlues),
+    next_generation([NextBlues, AliveReds], [_, NewReds]),
+    length(NewReds, NumReds).
+bloodlust_move1('r', [Move|PossMoves], [AliveBlues, AliveReds], [Blues, Reds], BestMove, BestScore) :-
+    alter_board(Move, AliveReds, NextReds),
+    next_generation([AliveBlues, NextReds], [NewBlues, _]),
+    length(NewBlues, NumBlues),
+    bloodlust_move1('r', PossMoves, [AliveBlues, AliveReds], [AliveBlues_, NextReds_], BestMove_, BestScore_),
+    (NumBlues < BestScore_ -> 
+     Blues = AliveBlues,
+     Reds  = NextReds,
+     BestMove = Move,
+     BestScore = NumBlues;
+     Blues  = AliveBlues_,
+     Reds = NextReds_,
+     BestMove = BestMove_,
+     BestScore = BestScore_). 
+bloodlust_move1('b', [Move|PossMoves], [AliveBlues, AliveReds], [Blues, Reds], BestMove, BestScore) :-
+    alter_board(Move, AliveBlues, NextBlues),
+    next_generation([NextBlues, AliveReds], [_, NewReds]),
+    length(NewReds, NumReds),
+    bloodlust_move1('b', PossMoves, [AliveBlues, AliveReds], [NextBlues_, AliveReds_], BestMove_, BestScore_),
+    (NumReds < BestScore_ -> 
+     Blues = NextBlues,
+     Reds  = AliveReds,
+     BestMove = Move,
+     BestScore = NumReds;
+     Blues  = NextBlues_,
+     Reds = AliveReds_,
+     BestMove = BestMove_,
+     BestScore = BestScore_). 
+/*
+bloodlust_move1('r', [Move], [AliveBlues, AliveReds], [], NewMove, NewBlues):- 
+    NumBlues < LastLeast
+    alter_board(Move, AliveReds, NextReds),
+    next_generation([AliveBlues, NextReds], [NewBlues, _]),
+    length(NewBlues, NumBlues),
+    (NumBlues < LastLeast ->
+    LastLeast is NumBlues,
+    LastMove!. 
+bloodlust_move1('r', [Move|PossMoves], [AliveBlues, AliveReds], [AliveBlues, NextReds], LastMove, LastLeast) :-
+    alter_board(Move, AliveReds, NextReds),
+    next_generation([AliveBlues, NextReds], [NewBlues, _]),
+    length(NewBlues, NumBlues),
+    (NumReds < LastLeast -> 
+     bloodlust_move1('b', PossMoves, [AliveBlues, AliveReds], [NextBlues, AliveReds], Move, NumReds);
+     bloodlust_move1('b', PossMoves, [AliveBlues, AliveReds], NewBoard, LastMove, LastLeast)).
+bloodlust_move1('b', [Move|PossMoves], [AliveBlues, AliveReds], [NextBlues, AliveReds], LastMove, LastLeast) :-
+    alter_board(Move, AliveBlues, NextBlues),
+    next_generation([NextBlues, AliveReds], [_, NewReds]),
+    length(NewReds, NumReds),
+    (NumReds < LastLeast -> 
+     bloodlust_move1('b', PossMoves, [AliveBlues, AliveReds], [NextBlues, AliveReds], Move, NumReds);
+     bloodlust_move1('b', PossMoves, [AliveBlues, AliveReds], NewBoard, LastMove, LastLeast)).
+
 
 bloodlust_move('r', PossMoves, [AliveBlues, AliveReds], [AliveBlues, NextReds], Move) :-
     member(Move, PossMoves),
@@ -121,7 +184,7 @@ bloodlust_move('b', PossMoves, [AliveBlues, AliveReds], [NextBlues, AliveReds], 
         next_generation([NextBlues1, AliveReds], [_, NewReds1]),
         length(NewReds1, L),
         L < Least).  
-
+*/
 %%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%% SELF_PRESERVATION STRATEGY
